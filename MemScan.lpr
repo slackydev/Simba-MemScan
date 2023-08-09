@@ -34,20 +34,34 @@ type
     SysMemLo: PtrUInt;
     SysMemHi: PtrUInt;
 
-    function Init(pid:UInt32): Boolean;
-    procedure Free();
+    function Init(pid:UInt32): Boolean; cdecl;
+    procedure Free(); cdecl;
 
-    function GetMemRange(low,high:PtrUInt; dataSize:Int32; Alignment:Int8): TPtrInfoArray;
-    function CopyMem(addr:Pointer; bytesToRead:Int32): TByteArray;
-    function Search(targetData:Pointer; targetSize:Int32; Alignment:Int8): TPtrIntArray;
-    function SearchBoolMask(maskData:Pointer; maskSize:Int32; Alignment:Int8): TPtrIntArray;
+    function GetMemRange(low,high:PtrUInt; dataSize:Int32; Alignment:Int8): TPtrInfoArray; cdecl;
+    function CopyMem(addr:Pointer; bytesToRead:Int32): TByteArray; cdecl;
+    function Search(targetData:Pointer; targetSize:Int32; Alignment:Int8): TPtrIntArray; cdecl;
+    function SearchBoolMask(maskData:Pointer; maskSize:Int32; Alignment:Int8): TPtrIntArray; cdecl;
+
+    // Helpers
+    function FindInt8(data:UInt8; alignment:Int8=1): TPtrIntArray; cdecl;
+    function FindInt16(data:UInt16; alignment:Int8=1): TPtrIntArray; cdecl;
+    function FindInt32(data:UInt32; alignment:Int8=1): TPtrIntArray; cdecl;
+    function FindInt64(data:UInt64; alignment:Int8=1): TPtrIntArray; cdecl;
+
+    function FindFloat(data:Single; alignment:Int8=1): TPtrIntArray; cdecl;
+    function FindDouble(data:Double; alignment:Int8=1): TPtrIntArray; cdecl;
+
+    function FindString(data:AnsiString; alignment:Int8=1): TPtrIntArray; cdecl;
+    function FindWideString(data:WideString; alignment:Int8=1): TPtrIntArray; cdecl;
+    function FindByteArray(data:TByteArray; alignment:Int8=1): TPtrIntArray; cdecl;
   end;
+
 
 
 
 //------------------------------------------------------------------------------
 
-function TMemScan.Init(pid:UInt32): Boolean;
+function TMemScan.Init(pid:UInt32): Boolean; cdecl;
 var
   sysInfo: SYSTEM_INFO;
 begin
@@ -62,7 +76,7 @@ begin
   Result := True;
 end;
 
-procedure TMemScan.Free();
+procedure TMemScan.Free(); cdecl;
 begin
   if Self.Proc <> 0 then
      CloseHandle(Self.Proc);
@@ -72,7 +86,7 @@ begin
 end;
 
 
-function TMemScan.GetMemRange(low,high:PtrUInt; dataSize:Int32; Alignment:Int8): TPtrInfoArray;
+function TMemScan.GetMemRange(low,high:PtrUInt; dataSize:Int32; Alignment:Int8): TPtrInfoArray; cdecl;
 var
   lo,hi,k:Int32;
   overhead,count,buf_size:Int32;
@@ -142,7 +156,7 @@ begin
 end;
 
 
-function TMemScan.CopyMem(addr:Pointer; bytesToRead:Int32): TByteArray;
+function TMemScan.CopyMem(addr:Pointer; bytesToRead:Int32): TByteArray; cdecl;
 var
   gotBytes:PtrUInt;
 begin
@@ -158,7 +172,7 @@ end;
 
   Alignment is the memory alignment, for example `4` bytes, can be used to skip some unwated matches.
 *)
-function TMemScan.Search(targetData:Pointer; targetSize:Int32; Alignment:Int8): TPtrIntArray;
+function TMemScan.Search(targetData:Pointer; targetSize:Int32; Alignment:Int8): TPtrIntArray; cdecl;
 var
   lo,hi:Int32;
   overhead,count,buf_size:Int32;
@@ -248,7 +262,7 @@ end;
 
   Be warned the result can quickly get far to big with small masks!
 *)
-function TMemScan.SearchBoolMask(maskData:Pointer; maskSize:Int32; Alignment:Int8): TPtrIntArray;
+function TMemScan.SearchBoolMask(maskData:Pointer; maskSize:Int32; Alignment:Int8): TPtrIntArray; cdecl;
 var
   lo,hi:Int32;
   overhead,count,buf_size:Int32;
@@ -313,93 +327,50 @@ begin
   SetLength(Result, count);
 end;
 
-
-
-//----------------------------------------------------------------------------|\
-//---| WRAPPERS |-------------------------------------------------------------||
-//----------------------------------------------------------------------------|/
-function TMemScan_Init(var scan:TMemScan; pid:UInt32): Boolean; cdecl;
+function TMemScan.FindInt8(data: UInt8; alignment: Int8): TPtrIntArray; cdecl;
 begin
-  Result := scan.Init(pid);
+  Result := Search(@data, SizeOf(UInt8), alignment);
 end;
 
-procedure TMemScan_Free(var scan:TMemScan); cdecl;
+function TMemScan.FindInt16(data: UInt16; alignment: Int8): TPtrIntArray; cdecl;
 begin
-  scan.Free();
+  Result := Search(@data, SizeOf(UInt16), alignment);
 end;
 
-function TMemScan_GetMemRange(var scan:TMemScan; low, high:PtrUInt; dataSize:Int32; alignment:Int8): TPtrInfoArray; cdecl;
+function TMemScan.FindInt32(data: UInt32; alignment: Int8): TPtrIntArray; cdecl;
 begin
-  Result := scan.GetMemRange(low, high, dataSize, alignment);
+  Result := Search(@data, SizeOf(UInt32), alignment);
 end;
 
-function TMemScan_CopyMem(var scan:TMemScan; addr:Pointer; bytesToRead:Int32): TByteArray; cdecl;
+function TMemScan.FindInt64(data: UInt64; alignment: Int8): TPtrIntArray; cdecl;
 begin
-  Result := scan.CopyMem(addr, bytesToRead);
+  Result := Search(@data, SizeOf(UInt64), alignment);
 end;
 
-function TMemScan_Search(var scan:TMemScan; targetData:Pointer; targetSize:Int32; alignment:Int8): TPtrIntArray; cdecl;
+function TMemScan.FindFloat(data: Single; alignment: Int8): TPtrIntArray; cdecl;
 begin
-  Result := scan.Search(targetData, targetSize, alignment);
+  Result := Search(@data, SizeOf(Single), alignment);
 end;
 
-function TMemScan_SearchBoolMask(var scan:TMemScan; maskData:Pointer; maskSize:Int32; alignment:Int8): TPtrIntArray; cdecl;
+function TMemScan.FindDouble(data: Double; alignment: Int8): TPtrIntArray; cdecl;
 begin
-  Result := scan.SearchBoolMask(maskData, maskSize, alignment);
+  Result := Search(@data, SizeOf(Double), alignment);
 end;
 
-
-//---| Helpers |--------------------------------------------------------------\\
-// ints
-function TMemScan_FindInt8(var scan:TMemScan; data:UInt8; alignment:Int8): TPtrIntArray; cdecl;
+function TMemScan.FindString(data: AnsiString; alignment: Int8): TPtrIntArray; cdecl;
 begin
-  Result := scan.Search(@data, SizeOf(UInt8), alignment);
+  Result := Search(@data[1], Length(Data)*SizeOf(AnsiChar), alignment);
 end;
 
-function TMemScan_FindInt16(var scan:TMemScan; data:UInt16; alignment:Int8): TPtrIntArray; cdecl;
+function TMemScan.FindWideString(data: WideString; alignment: Int8): TPtrIntArray; cdecl;
 begin
-  Result := scan.Search(@data, SizeOf(UInt16), alignment);
+  Result := Search(@data[1], Length(Data)*SizeOf(WideChar), alignment);
 end;
 
-function TMemScan_FindInt32(var scan:TMemScan; data:UInt32; alignment:Int8): TPtrIntArray; cdecl;
+function TMemScan.FindByteArray(data: TByteArray; alignment: Int8): TPtrIntArray; cdecl;
 begin
-  Result := scan.Search(@data, SizeOf(UInt32), alignment);
+  Result := Search(@data[0], Length(Data), alignment);
 end;
-
-function TMemScan_FindInt64(var scan:TMemScan; data:UInt64; alignment:Int8): TPtrIntArray; cdecl;
-begin
-  Result := scan.Search(@data, SizeOf(UInt64), alignment);
-end;
-
-// floats
-function TMemScan_FindFloat(var scan:TMemScan; data:Single; alignment:Int8): TPtrIntArray; cdecl;
-begin
-  Result := scan.Search(@data, SizeOf(Single), alignment);
-end;
-
-function TMemScan_FindDouble(var scan:TMemScan; data:Double; alignment:Int8): TPtrIntArray; cdecl;
-begin
-  Result := scan.Search(@data, SizeOf(Double), alignment);
-end;
-
-// str
-function TMemScan_FindString(var scan:TMemScan; data:AnsiString; alignment:Int8): TPtrIntArray; cdecl;
-begin
-  Result := scan.Search(@data[1], Length(data), alignment);
-end;
-
-function TMemScan_FindWideString(var scan:TMemScan; data:WideString; alignment:Int8): TPtrIntArray; cdecl;
-begin
-  Result := scan.Search(@data[1], Length(data)*2, alignment);
-end;
-
-// general
-function TMemScan_FindByteArray(var scan:TMemScan; data:TByteArray; alignment:Int8): TPtrIntArray; cdecl;
-begin
-  Result := scan.Search(@data[0], Length(data), alignment);
-end;
-
-
 
 {=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=]
  Export our functions, name, information etc...
@@ -423,76 +394,76 @@ begin
   SetMemoryManager(OldMemoryManager);
 end;
 
-
 //Count of functions that will be exported...
 function GetFunctionCount(): Integer; cdecl; export;
-begin Result := 15; end;
-
+begin
+  Result := 15;
+end;
 
 //Information about our functions...
 function GetFunctionInfo(x: Integer; var ProcAddr: Pointer; var ProcDef: PChar): Integer; cdecl; export;
 begin
   case x of
     0:begin
-        ProcAddr := @TMemScan_Init;
+        ProcAddr := @TMemScan.Init;
         StrPCopy(ProcDef, 'function TMemScan.Init(pid:UInt32): Boolean;');
       end;
     1:begin
-        ProcAddr := @TMemScan_Free;
+        ProcAddr := @TMemScan.Free;
         StrPCopy(ProcDef, 'procedure TMemScan.Free();');
       end;
     2:begin
-        ProcAddr := @TMemScan_Search;
+        ProcAddr := @TMemScan.Search;
         StrPCopy(ProcDef, 'function TMemScan.Search(targetData:Pointer; targetSize:Int32; alignment:Int8=1): TPtrIntArray;');
       end;
     3:begin
-        ProcAddr := @TMemScan_GetMemRange;
+        ProcAddr := @TMemScan.GetMemRange;
         StrPCopy(ProcDef, 'function TMemScan.GetMemRange(low,high:PtrUInt; dataSize:Int32; alignment:Int8=1): TPtrInfoArray;');
       end;
     4:begin
-        ProcAddr := @TMemScan_SearchBoolMask;
+        ProcAddr := @TMemScan.SearchBoolMask;
         StrPCopy(ProcDef, 'function TMemScan.SearchBoolMask(maskData:Pointer; maskSize:Int32; alignment:Int8=1): TPtrIntArray;');
       end;
     5:begin
-        ProcAddr := @TMemScan_CopyMem;
+        ProcAddr := @TMemScan.CopyMem;
         StrPCopy(ProcDef, 'function TMemScan.CopyMem(addr:PtrUInt; bytesToRead:Int32): TByteArray;');
       end;
 
     //helpers ------------------------>
     6:begin
-        ProcAddr := @TMemScan_FindInt8;
+        ProcAddr := @TMemScan.FindInt8;
         StrPCopy(ProcDef, 'function TMemScan.FindInt8(data:UInt8; alignment:Int8=1): TPtrIntArray;');
       end;
     7:begin
-        ProcAddr := @TMemScan_FindInt16;
+        ProcAddr := @TMemScan.FindInt16;
         StrPCopy(ProcDef, 'function TMemScan.FindInt16(data:UInt16; alignment:Int8=1): TPtrIntArray;');
       end;
     8:begin
-        ProcAddr := @TMemScan_FindInt32;
+        ProcAddr := @TMemScan.FindInt32;
         StrPCopy(ProcDef, 'function TMemScan.FindInt32(data:UInt32; alignment:Int8=1): TPtrIntArray;');
       end;
     9:begin
-        ProcAddr := @TMemScan_FindInt64;
+        ProcAddr := @TMemScan.FindInt64;
         StrPCopy(ProcDef, 'function TMemScan.FindInt64(data:UInt64; alignment:Int8=1): TPtrIntArray;');
       end;
    10:begin
-        ProcAddr := @TMemScan_FindFloat;
+        ProcAddr := @TMemScan.FindFloat;
         StrPCopy(ProcDef, 'function TMemScan.FindFloat(data:Single; alignment:Int8=1): TPtrIntArray;');
       end;
    11:begin
-        ProcAddr := @TMemScan_FindDouble;
+        ProcAddr := @TMemScan.FindDouble;
         StrPCopy(ProcDef, 'function TMemScan.FindDouble(data:Double; alignment:Int8=1): TPtrIntArray;');
       end;
    12:begin
-        ProcAddr := @TMemScan_FindString;
+        ProcAddr := @TMemScan.FindString;
         StrPCopy(ProcDef, 'function TMemScan.FindString(data:AnsiString; alignment:Int8=1): TPtrIntArray;');
       end;
    13:begin
-        ProcAddr := @TMemScan_FindWideString;
+        ProcAddr := @TMemScan.FindWideString;
         StrPCopy(ProcDef, 'function TMemScan.FindWideString(data:WideString; alignment:Int8=1): TPtrIntArray;');
       end;
    14:begin
-        ProcAddr := @TMemScan_FindByteArray;
+        ProcAddr := @TMemScan.FindByteArray;
         StrPCopy(ProcDef, 'function TMemScan.FindByteArray(data:TByteArray; alignment:Int8=1): TPtrIntArray;');
       end;
   else
@@ -502,7 +473,9 @@ begin
 end;
 
 function GetTypeCount(): Integer; cdecl; export;
-begin Result := 4; end;
+begin
+  Result := 4;
+end;
 
 function GetTypeInfo(x: Integer; var sType, sTypeDef: PChar): integer; cdecl; export;
 begin
